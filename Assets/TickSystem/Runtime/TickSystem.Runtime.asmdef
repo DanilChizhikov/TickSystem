@@ -1,0 +1,16 @@
+{
+    "name": "TickSystem.Runtime",
+    "rootNamespace": "MbsCore",
+    "references": [
+        "GUID:2198da28a01e64854a2386d4b1a86797"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

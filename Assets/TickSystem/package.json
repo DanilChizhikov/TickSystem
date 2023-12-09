@@ -1,0 +1,25 @@
+{
+    "name": "com.danilchizhikov.ticksystem",
+    "displayName": "Tick System",
+    "version": "0.0.1",
+    "unity": "2022.3",
+    "description": "Lightweight update system for Unity.",
+    "keywords": [
+        "Update",
+        "Update System",
+        "Tick",
+        "Tick System"
+    ],
+    "category": "Tools",
+    "author": "MbsCore",
+    "repository": {
+        "type": "git",
+        "url": "ssh://github.com:DanilChizhikov/TickSystem.git",
+        "directory": "com.danilchizhikov.ticksystem"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com/@DanilChizhikov"
+    },
+    "license": "MIT"
+  }
+  
