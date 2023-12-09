@@ -1,11 +1,8 @@
 {
     "name": "com.danilchizhikov.ticksystem",
     "displayName": "Tick System",
-    "version": "0.0.2",
+    "version": "0.0.1",
     "unity": "2022.3",
-    "dependencies": {
-        "com.unity.addressables": "1.21.19"
-    },
     "description": "Lightweight update system for Unity.",
     "keywords": [
         "Update",
