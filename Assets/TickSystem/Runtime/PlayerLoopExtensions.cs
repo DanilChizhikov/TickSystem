@@ -31,11 +31,11 @@ namespace MbsCore.TickSystem
 
         public static void AddSystem<TSystem>(ref this PlayerLoopSystem loopSystem, PlayerLoopSystem.UpdateFunction update)
         {
-            loopSystem.subSystemList.Add(new PlayerLoopSystem
-                                                         {
-                                                                 type = typeof(TSystem),
-                                                                 updateDelegate = update,
-                                                         });
+            loopSystem.subSystemList = loopSystem.subSystemList.Add(new PlayerLoopSystem
+                    {
+                            type = typeof(TSystem),
+                            updateDelegate = update,
+                    });
         }
 
         public static void RemoveSystem<TSystem>(ref this PlayerLoopSystem loopSystem, bool recursive = true)
