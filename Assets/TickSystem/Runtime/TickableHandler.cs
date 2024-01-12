@@ -1,7 +1,6 @@
 using System;
-using MbsCore.TickSystem.Infrastructure;
 
-namespace MbsCore.TickSystem.Runtime
+namespace MbsCore.TickSystem
 {
     internal sealed class TickableHandler : IDisposable
     {

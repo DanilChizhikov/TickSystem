@@ -1,7 +1,6 @@
-using MbsCore.TickSystem.Infrastructure;
 using UnityEngine;
 
-namespace MbsCore.TickSystem.Runtime.Controllers
+namespace MbsCore.TickSystem
 {
     internal sealed class DefaultTickController : TickController<ITickable>
     {

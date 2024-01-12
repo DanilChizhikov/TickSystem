@@ -1,6 +1,6 @@
 using System;
 
-namespace MbsCore.TickSystem.Infrastructure
+namespace MbsCore.TickSystem
 {
     public interface ITickService
     {

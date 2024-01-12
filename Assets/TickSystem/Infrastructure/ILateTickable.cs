@@ -1,4 +1,4 @@
-namespace MbsCore.TickSystem.Infrastructure
+namespace MbsCore.TickSystem
 {
     public interface ILateTickable : IBaseTickable
     {

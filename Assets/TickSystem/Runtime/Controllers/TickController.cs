@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using MbsCore.TickSystem.Infrastructure;
 
-namespace MbsCore.TickSystem.Runtime.Controllers
+namespace MbsCore.TickSystem
 {
     internal abstract class TickController<T> : ITickController where T : IBaseTickable
     {
