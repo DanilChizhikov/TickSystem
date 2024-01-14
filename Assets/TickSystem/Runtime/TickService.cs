@@ -5,75 +5,92 @@ namespace MbsCore.TickSystem
 {
     public sealed class TickService : ITickService, IDisposable
     {
-        private readonly TickKernel _tickKernel;
-        private readonly Dictionary<IBaseTickable, HashSet<ITickController>> _tickableMap;
-        private readonly Dictionary<IBaseTickable, TickableHandler> _handlersMap;
+        private readonly ITickController _fixTickController;
+        private readonly ITickController _tickController;
+        private readonly ITickController _lateTickController;
+        private readonly List<IDisposable> _fixTickDisposables;
+        private readonly List<IDisposable> _tickDisposables;
+        private readonly List<IDisposable> _lateTickDisposables;
 
         public TickService()
         {
-            _tickKernel = new TickKernel();
-            _tickableMap = new Dictionary<IBaseTickable, HashSet<ITickController>>();
-            _handlersMap = new Dictionary<IBaseTickable, TickableHandler>();
+            _fixTickController = new FixedUpdateTickController();
+            _tickController = new UpdateTickController();
+            _lateTickController = new LateUpdateTickController();
         }
         
-        public IDisposable AddTick(IBaseTickable value)
+        public IDisposable AddFixTick(IFixTickable value, int order = Int32.MaxValue)
         {
-            bool wasAdded = false;
-            if (!_handlersMap.TryGetValue(value, out TickableHandler handler))
+            if (!_fixTickController.TryAdd(value.FixTick, order))
             {
-                if (!_tickableMap.TryGetValue(value, out HashSet<ITickController> controllers))
-                {
-                    controllers = new HashSet<ITickController>();
-                    _tickableMap.Add(value, controllers);
-                }
-                
-                wasAdded |= TryAddTickable(value, _tickKernel.TickController, controllers);
-                wasAdded |= TryAddTickable(value, _tickKernel.FixTickController, controllers);
-                wasAdded |= TryAddTickable(value, _tickKernel.LateTickController, controllers);
+                return null;
             }
 
-            if (wasAdded)
-            {
-                handler = new TickableHandler(value);
-                handler.OnDisposed += TickableDisposedCallback;
-                _handlersMap.Add(value, handler);
-            }
-
+            IDisposable handler = CreateTickDisposable(value.FixTick, RemoveFixTickable);
+            _fixTickDisposables.Add(handler);
             return handler;
         }
 
-        public void Dispose()
+        public IDisposable AddTick(ITickable value, int order = Int32.MaxValue)
         {
-            _tickKernel.Dispose();
-            var handlers = new HashSet<TickableHandler>(_handlersMap.Values);
-            foreach (var handler in handlers)
+            if (!_tickController.TryAdd(value.Tick, order))
             {
-                handler.Dispose();
+                return null;
             }
+
+            IDisposable handler = CreateTickDisposable(value.Tick, RemoveUpdateTickable);
+            _tickDisposables.Add(handler);
+            return handler;
         }
 
-        private bool TryAddTickable(IBaseTickable tickable, ITickController controller, HashSet<ITickController> controllers)
+        public IDisposable AddLateTick(ILateTickable value, int order = Int32.MaxValue)
         {
-            if (!controller.Add(tickable))
+            if (!_lateTickController.TryAdd(value.LateTick, order))
             {
-                return false;
+                return null;
             }
 
-            return controllers.Add(controller);
+            IDisposable handler = CreateTickDisposable(value.LateTick, RemoveLateTickable);
+            _lateTickDisposables.Add(handler);
+            return handler;
         }
         
-        private void TickableDisposedCallback(IBaseTickable tickable)
+        public void Dispose()
         {
-            if (_tickableMap.TryGetValue(tickable, out HashSet<ITickController> controllers))
-            {
-                foreach (var controller in controllers)
-                {
-                    controller.Remove(tickable);
-                }
-                
-                _tickableMap.Remove(tickable);
-                _handlersMap.Remove(tickable);
-            }
+            _fixTickController.Dispose();
+            _tickController.Dispose();
+            _lateTickController.Dispose();
+            _fixTickDisposables.Clear();
+            _tickDisposables.Clear();
+            _lateTickDisposables.Clear();
+        }
+
+        private IDisposable CreateTickDisposable(Action<float> tick, Action<TickableHandler> disposeCallback)
+        {
+            var handler = new TickableHandler(tick);
+            handler.OnDisposed += disposeCallback;
+            return handler;
+        }
+
+        private void RemoveTickable(TickableHandler handler, ITickController controller, List<IDisposable> disposables)
+        {
+            controller.TryRemove(handler.TickAction);
+            disposables.Remove(handler);
+        }
+
+        private void RemoveFixTickable(TickableHandler handler)
+        {
+            RemoveTickable(handler, _fixTickController, _fixTickDisposables);
+        }
+
+        private void RemoveUpdateTickable(TickableHandler handler)
+        {
+            RemoveTickable(handler, _tickController, _tickDisposables);
+        }
+
+        private void RemoveLateTickable(TickableHandler handler)
+        {
+            RemoveTickable(handler, _lateTickController, _lateTickDisposables);
         }
     }
 }

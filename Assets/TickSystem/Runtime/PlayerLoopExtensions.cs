@@ -31,21 +31,31 @@ namespace MbsCore.TickSystem
 
         public static void AddSystem<TSystem>(ref this PlayerLoopSystem loopSystem, PlayerLoopSystem.UpdateFunction update)
         {
+            loopSystem.AddSystem(typeof(TSystem), update);
+        }
+
+        public static void AddSystem(ref this PlayerLoopSystem loopSystem, Type systemType,
+                                     PlayerLoopSystem.UpdateFunction update)
+        {
             loopSystem.subSystemList = loopSystem.subSystemList.Add(new PlayerLoopSystem
                     {
-                            type = typeof(TSystem),
+                            type = systemType,
                             updateDelegate = update,
                     });
         }
 
         public static void RemoveSystem<TSystem>(ref this PlayerLoopSystem loopSystem, bool recursive = true)
         {
+            loopSystem.RemoveSystem(typeof(TSystem), recursive);
+        }
+
+        public static void RemoveSystem(ref this PlayerLoopSystem loopSystem, Type systemType, bool recursive = true)
+        {
             if (loopSystem.subSystemList == null || loopSystem.subSystemList.Length <= 0)
             {
                 return;
             }
-
-            Type systemType = typeof(TSystem);
+            
             for (int i = loopSystem.subSystemList.Length - 1; i >= 0; i--)
             {
                 ref PlayerLoopSystem system = ref loopSystem.subSystemList[i];
@@ -55,7 +65,7 @@ namespace MbsCore.TickSystem
                 }
                 else if (recursive)
                 {
-                    system.RemoveSystem<TSystem>();
+                    system.RemoveSystem(systemType);
                 }
             }
         }

@@ -1,6 +1,6 @@
 namespace MbsCore.TickSystem
 {
-    public interface ITickable : IBaseTickable
+    public interface ITickable
     {
         void Tick(float deltaTime);
     }
