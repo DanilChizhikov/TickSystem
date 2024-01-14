@@ -1,6 +1,6 @@
-namespace MbsCore.TickSystem.Infrastructure
+namespace MbsCore.TickSystem
 {
-    public interface ILateTickable : IBaseTickable
+    public interface ILateTickable
     {
         void LateTick(float deltaTime);
     }

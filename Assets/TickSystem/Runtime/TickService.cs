@@ -1,99 +1,99 @@
 using System;
 using System.Collections.Generic;
-using MbsCore.TickSystem.Infrastructure;
-using MbsCore.TickSystem.Runtime.Controllers;
-using UnityEngine;
 
-namespace MbsCore.TickSystem.Runtime
+namespace MbsCore.TickSystem
 {
     public sealed class TickService : ITickService, IDisposable
     {
-        private readonly Dictionary<IBaseTickable, HashSet<ITickController>> _tickableMap;
-        private readonly Dictionary<IBaseTickable, TickableHandler> _handlersMap;
-        private readonly ITickController _fixController;
-        private readonly ITickController _defaultController;
-        private readonly ITickController _lateController;
-
-        private TickMonoKernel _kernel;
+        private readonly ITickController _fixTickController;
+        private readonly ITickController _tickController;
+        private readonly ITickController _lateTickController;
+        private readonly HashSet<IDisposable> _fixTickDisposables;
+        private readonly HashSet<IDisposable> _tickDisposables;
+        private readonly HashSet<IDisposable> _lateTickDisposables;
 
         public TickService()
         {
-            _tickableMap = new Dictionary<IBaseTickable, HashSet<ITickController>>();
-            _handlersMap = new Dictionary<IBaseTickable, TickableHandler>();
-            _fixController = new FixTickController();
-            _defaultController = new DefaultTickController();
-            _lateController = new LateTickController();
-            CreateTickKernel();
+            _fixTickController = new FixedUpdateTickController();
+            _tickController = new UpdateTickController();
+            _lateTickController = new LateUpdateTickController();
+            _fixTickDisposables = new HashSet<IDisposable>();
+            _tickDisposables = new HashSet<IDisposable>();
+            _lateTickDisposables = new HashSet<IDisposable>();
         }
         
-        public IDisposable AddTick(IBaseTickable value)
+        public IDisposable AddFixTick(IFixTickable value, int order = Int32.MaxValue)
         {
-            bool wasAdded = false;
-            if (!_handlersMap.TryGetValue(value, out TickableHandler handler))
+            if (!_fixTickController.TryAdd(value, value.FixTick, order))
             {
-                if (!_tickableMap.TryGetValue(value, out HashSet<ITickController> controllers))
-                {
-                    controllers = new HashSet<ITickController>();
-                    _tickableMap.Add(value, controllers);
-                }
-                
-                wasAdded |= TryAddTickable(value, _defaultController, controllers);
-                wasAdded |= TryAddTickable(value, _fixController, controllers);
-                wasAdded |= TryAddTickable(value, _lateController, controllers);
+                return null;
             }
 
-            if (wasAdded)
-            {
-                handler = new TickableHandler(value);
-                handler.OnDisposed += TickableDisposedCallback;
-                _handlersMap.Add(value, handler);
-            }
-
+            IDisposable handler = CreateTickDisposable(value.FixTick, RemoveFixTickable);
+            _fixTickDisposables.Add(handler);
             return handler;
         }
 
-        public void Dispose()
+        public IDisposable AddTick(ITickable value, int order = Int32.MaxValue)
         {
-            _kernel.Dispose();
-            var handlers = new HashSet<TickableHandler>(_handlersMap.Values);
-            foreach (var handler in handlers)
+            if (!_tickController.TryAdd(value, value.Tick, order))
             {
-                handler.Dispose();
-            }
-        }
-
-        private void CreateTickKernel()
-        {
-            _kernel = new GameObject(nameof(TickMonoKernel)).AddComponent<TickMonoKernel>();
-            var controllers = new Dictionary<TickMonoKernel.TickType, ITickController>(3);
-            controllers.Add(TickMonoKernel.TickType.Default, _defaultController);
-            controllers.Add(TickMonoKernel.TickType.Fix, _fixController);
-            controllers.Add(TickMonoKernel.TickType.Late, _lateController);
-            _kernel.Initialize(controllers);
-        }
-
-        private bool TryAddTickable(IBaseTickable tickable, ITickController controller, HashSet<ITickController> controllers)
-        {
-            if (!controller.Add(tickable))
-            {
-                return false;
+                return null;
             }
 
-            return controllers.Add(controller);
+            IDisposable handler = CreateTickDisposable(value.Tick, RemoveUpdateTickable);
+            _tickDisposables.Add(handler);
+            return handler;
+        }
+
+        public IDisposable AddLateTick(ILateTickable value, int order = Int32.MaxValue)
+        {
+            if (!_lateTickController.TryAdd(value, value.LateTick, order))
+            {
+                return null;
+            }
+
+            IDisposable handler = CreateTickDisposable(value.LateTick, RemoveLateTickable);
+            _lateTickDisposables.Add(handler);
+            return handler;
         }
         
-        private void TickableDisposedCallback(IBaseTickable tickable)
+        public void Dispose()
         {
-            if (_tickableMap.TryGetValue(tickable, out HashSet<ITickController> controllers))
-            {
-                foreach (var controller in controllers)
-                {
-                    controller.Remove(tickable);
-                }
-                
-                _tickableMap.Remove(tickable);
-                _handlersMap.Remove(tickable);
-            }
+            _fixTickController.Dispose();
+            _tickController.Dispose();
+            _lateTickController.Dispose();
+            _fixTickDisposables.Clear();
+            _tickDisposables.Clear();
+            _lateTickDisposables.Clear();
+        }
+
+        private IDisposable CreateTickDisposable(Action<float> tick, Action<TickableHandler> disposeCallback)
+        {
+            var handler = new TickableHandler(tick);
+            handler.OnDisposed += disposeCallback;
+            return handler;
+        }
+
+        private void RemoveTickable(TickableHandler handler, ITickController controller, HashSet<IDisposable> disposables)
+        {
+            controller.TryRemove(handler.TickAction);
+            disposables.Remove(handler);
+        }
+
+        private void RemoveFixTickable(TickableHandler handler)
+        {
+            RemoveTickable(handler, _fixTickController, _fixTickDisposables);
+        }
+
+        private void RemoveUpdateTickable(TickableHandler handler)
+        {
+            RemoveTickable(handler, _tickController, _tickDisposables);
+        }
+
+        private void RemoveLateTickable(TickableHandler handler)
+        {
+            RemoveTickable(handler, _lateTickController, _lateTickDisposables);
         }
     }
 }

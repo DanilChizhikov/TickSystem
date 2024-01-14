@@ -14,7 +14,6 @@ which provide a flexible way to handle different types of ticking in Unity game 
 - [Basic Usage](#Basic-Usage)
     - [Initialize](#Initialize)
     - [Implementations](#Implementations)
-    - [Tickable LifeTime](#Tickable-LifeTime)
 - [License](#License)
 
 ## Getting Started
@@ -30,7 +29,7 @@ Prerequisites:
 1. Navigate to your project's Packages folder and open the manifest.json file.
 2. Add this line below the "dependencies": { line
     - ```json title="Packages/manifest.json"
-      "com.danilchizhikov.ticksystem": "https://github.com/DanilChizhikov/TickSystem.git?path=Assets/TickSystem#0.0.1",
+      "com.danilchizhikov.ticksystem": "https://github.com/DanilChizhikov/TickSystem.git?path=Assets/TickSystem#0.2.0",
       ```
 UPM should now install the package.
 
@@ -44,49 +43,40 @@ Use these interfaces to implement various ticking behaviors for different game e
 ```csharp
 public interface ITickService
 {
-    IDisposable AddTick(IBaseTickable value);
+    IDisposable AddFixTick(IFixTickable value, int order = int.MaxValue);
+    IDisposable AddTick(ITickable value, int order = int.MaxValue);
+    IDisposable AddLateTick(ILateTickable value, int order = int.MaxValue);
 }
 ```
 
 2. ITickController - interface defines the contract for a tick controller, responsible for managing and processing tickable elements.
 ```csharp
-public interface ITickController
+public interface ITickController : IDisposable
 {
-    Type ServicedTickType { get; }
-
-    bool Add(IBaseTickable value);
-    void Processing();
-    void Remove(IBaseTickable value);
+    bool TryAdd(object owner, Action<float> tick, int order);
+    bool TryRemove(Action<float> tick);
 }
 ```
 
-3. IBaseTickable - interface serves as the base for all tickable interfaces, providing a default tick order of 0.
+3. ITickable - interface extends the base tickable interface and adds a method for regular tick updates.
 ```csharp
-public interface IBaseTickable
-{
-    uint TickOrder => 0;
-}
-```
-
-4. ITickable - interface extends the base tickable interface and adds a method for regular tick updates.
-```csharp
-public interface ITickable : IBaseTickable
+public interface ITickable
 {
     void Tick(float deltaTime);
 }
 ```
 
-5. IFixTickable - interface extends the base tickable interface and adds a method for fixed tick updates.
+4. IFixTickable - interface extends the base tickable interface and adds a method for fixed tick updates.
 ```csharp
-public interface IFixTickable : IBaseTickable
+public interface IFixTickable
 {
     void FixTick(float deltaTime);
 }
 ```
 
-6. ILateTickable - interface extends the base tickable interface and adds a method for late tick updates.
+5. ILateTickable - interface extends the base tickable interface and adds a method for late tick updates.
 ```csharp
-public interface ILateTickable : IBaseTickable
+public interface ILateTickable
 {
     void LateTick(float deltaTime);
 }
@@ -101,19 +91,20 @@ Here we will show the easiest way, which is not the method that we recommend usi
 ```csharp
 public sealed class TickSystemBootstrap : MonoBehaviour
 {
-    private static ITickService _service;
+    private static ITickService _tickService;
 
-    public static ITickService Service => _service;
+    public static ITickService TickService => _tickService;
 
     private void Awake()
     {
-        if (Service != null)
+        if (TickService != null)
         {
             Destroy(gameObject);
             return;
         }
 
-        _service = new TickService();
+        _tickService = new TickService();
+        DontDestroyOnLoad(gameObject);
     }
 }
 ```
@@ -122,42 +113,39 @@ public sealed class TickSystemBootstrap : MonoBehaviour
 
 In order to enable your object to be updated, it is enough to make it an implementation of one of the 3 interfaces or all at once.
 ```csharp
-internal sealed class Example : ITickable, IFixTickable, ILateTickable
+public sealed class TickableEntity : IFixTickable, ITickable, ILateTickable, IDisposable
 {
-    public void Tick(float deltaTime)
+    private readonly IDisposable _fixTickDisposable;
+    private readonly IDisposable _tickDisposable;
+    private readonly IDisposable _lateTickDisposable;
+    
+    public TickableEntity(ITickService tickService)
     {
-        // some code...
+        _fixTickDisposable = tickService.AddFixTick(this);
+        _tickDisposable = tickService.AddTick(this);
+        _lateTickDisposable = tickService.AddLateTick(this);
     }
-
+    
     public void FixTick(float deltaTime)
     {
-        // some code...
+        Debug.Log($"{nameof(FixTick)}: {deltaTime}");
+    }
+
+    public void Tick(float deltaTime)
+    {
+        Debug.Log($"{nameof(Tick)}: {deltaTime}");
     }
 
     public void LateTick(float deltaTime)
     {
-        // some code...
-    }
-}
-```
-
-### Tickable LifeTime
-
-After you have implemented the necessary interface, you need to add your object to the system via ITickService.
-Which in turn will return you IDisposable, which will allow you to delete the object from the system in the future by calling the Dispose method.
-```csharp
-internal sealed class ExampleTickableLifeTime : IDisposable
-{
-    private readonly IDisposable _exampleDispose;
-    
-    public ExampleTickableLifeTime(ITickService tickService, Example example)
-    {
-        _exampleDispose = tickService.AddTick(example);
+        Debug.Log($"{nameof(LateTick)}: {deltaTime}");
     }
 
     public void Dispose()
     {
-        _exampleDispose?.Dispose();
+        _fixTickDisposable?.Dispose();
+        _tickDisposable?.Dispose();
+        _lateTickDisposable?.Dispose();
     }
 }
 ```

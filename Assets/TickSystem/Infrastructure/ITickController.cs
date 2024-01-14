@@ -1,13 +1,10 @@
 using System;
 
-namespace MbsCore.TickSystem.Infrastructure
+namespace MbsCore.TickSystem
 {
-    public interface ITickController
+    public interface ITickController : IDisposable
     {
-        Type ServicedTickType { get; }
-
-        bool Add(IBaseTickable value);
-        void Processing();
-        void Remove(IBaseTickable value);
+        bool TryAdd(object owner, Action<float> tick, int order);
+        bool TryRemove(Action<float> tick);
     }
 }

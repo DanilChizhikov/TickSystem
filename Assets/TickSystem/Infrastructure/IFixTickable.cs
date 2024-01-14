@@ -1,6 +1,6 @@
-namespace MbsCore.TickSystem.Infrastructure
+namespace MbsCore.TickSystem
 {
-    public interface IFixTickable : IBaseTickable
+    public interface IFixTickable
     {
         void FixTick(float deltaTime);
     }

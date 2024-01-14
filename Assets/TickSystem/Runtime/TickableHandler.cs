@@ -1,22 +1,21 @@
 using System;
-using MbsCore.TickSystem.Infrastructure;
 
-namespace MbsCore.TickSystem.Runtime
+namespace MbsCore.TickSystem
 {
     internal sealed class TickableHandler : IDisposable
     {
-        public event Action<IBaseTickable> OnDisposed;
+        public event Action<TickableHandler> OnDisposed; 
         
-        public IBaseTickable Tickable { get; }
+        public Action<float> TickAction { get; }
 
-        public TickableHandler(IBaseTickable tickable)
+        public TickableHandler(Action<float> tickAction)
         {
-            Tickable = tickable;
+            TickAction = tickAction;
         }
         
         public void Dispose()
         {
-            OnDisposed?.Invoke(Tickable);
+            OnDisposed?.Invoke(this);
         }
     }
 }

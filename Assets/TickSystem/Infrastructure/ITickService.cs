@@ -1,9 +1,11 @@
 using System;
 
-namespace MbsCore.TickSystem.Infrastructure
+namespace MbsCore.TickSystem
 {
     public interface ITickService
     {
-        IDisposable AddTick(IBaseTickable value);
+        IDisposable AddFixTick(IFixTickable value, int order = int.MaxValue);
+        IDisposable AddTick(ITickable value, int order = int.MaxValue);
+        IDisposable AddLateTick(ILateTickable value, int order = int.MaxValue);
     }
 }
