@@ -8,20 +8,23 @@ namespace MbsCore.TickSystem
         private readonly ITickController _fixTickController;
         private readonly ITickController _tickController;
         private readonly ITickController _lateTickController;
-        private readonly List<IDisposable> _fixTickDisposables;
-        private readonly List<IDisposable> _tickDisposables;
-        private readonly List<IDisposable> _lateTickDisposables;
+        private readonly HashSet<IDisposable> _fixTickDisposables;
+        private readonly HashSet<IDisposable> _tickDisposables;
+        private readonly HashSet<IDisposable> _lateTickDisposables;
 
         public TickService()
         {
             _fixTickController = new FixedUpdateTickController();
             _tickController = new UpdateTickController();
             _lateTickController = new LateUpdateTickController();
+            _fixTickDisposables = new HashSet<IDisposable>();
+            _tickDisposables = new HashSet<IDisposable>();
+            _lateTickDisposables = new HashSet<IDisposable>();
         }
         
         public IDisposable AddFixTick(IFixTickable value, int order = Int32.MaxValue)
         {
-            if (!_fixTickController.TryAdd(value.FixTick, order))
+            if (!_fixTickController.TryAdd(value, value.FixTick, order))
             {
                 return null;
             }
@@ -33,7 +36,7 @@ namespace MbsCore.TickSystem
 
         public IDisposable AddTick(ITickable value, int order = Int32.MaxValue)
         {
-            if (!_tickController.TryAdd(value.Tick, order))
+            if (!_tickController.TryAdd(value, value.Tick, order))
             {
                 return null;
             }
@@ -45,7 +48,7 @@ namespace MbsCore.TickSystem
 
         public IDisposable AddLateTick(ILateTickable value, int order = Int32.MaxValue)
         {
-            if (!_lateTickController.TryAdd(value.LateTick, order))
+            if (!_lateTickController.TryAdd(value, value.LateTick, order))
             {
                 return null;
             }
@@ -72,7 +75,7 @@ namespace MbsCore.TickSystem
             return handler;
         }
 
-        private void RemoveTickable(TickableHandler handler, ITickController controller, List<IDisposable> disposables)
+        private void RemoveTickable(TickableHandler handler, ITickController controller, HashSet<IDisposable> disposables)
         {
             controller.TryRemove(handler.TickAction);
             disposables.Remove(handler);

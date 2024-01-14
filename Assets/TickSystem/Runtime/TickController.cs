@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine.LowLevel;
 
 namespace MbsCore.TickSystem
@@ -11,6 +12,7 @@ namespace MbsCore.TickSystem
         private readonly List<TickItem> _ticks;
         private readonly Queue<TickItem> _addQueue;
         private readonly Queue<TickItem> _removeQueue;
+        private readonly StringBuilder _profileNameBuilder;
         
         protected abstract float DeltaTime { get; }
         
@@ -21,20 +23,22 @@ namespace MbsCore.TickSystem
             _ticks = new List<TickItem>();
             _addQueue = new Queue<TickItem>();
             _removeQueue = new Queue<TickItem>();
+            _profileNameBuilder = new StringBuilder();
+            TickCount = 0;
             PlayerLoopExtensions.ModifyPlayerLoop((ref PlayerLoopSystem system) =>
             {
                 system.GetSystem<TUpdate>().AddSystem(GetType(), TickProcessing);
             });
         }
         
-        public bool TryAdd(Action<float> tick, int order)
+        public bool TryAdd(object owner, Action<float> tick, int order)
         {
             if (Contains(tick))
             {
                 return false;
             }
             
-            _addQueue.Enqueue(new TickItem(order, tick));
+            _addQueue.Enqueue(new TickItem(order, owner, tick));
             return true;
         }
 
@@ -82,16 +86,20 @@ namespace MbsCore.TickSystem
 
             return -1;
         }
-        
-        private void PreTickProcessing()
-        {
-            AddProcessing();
-            RemoveProcessing();
-            _ticks.Sort(s_tickComparer);
-            TickCount = _ticks.Count;
-        }
 
-        private void RemoveProcessing()
+        private void AddProcessing(ref bool isDirty)
+        {
+            while (_addQueue.TryDequeue(out TickItem item))
+            {
+                if (!_ticks.Contains(item))
+                {
+                    _ticks.Add(item);
+                    isDirty = true;
+                }
+            }
+        }
+        
+        private void RemoveProcessing(ref bool isDirty)
         {
             while (_removeQueue.TryDequeue(out TickItem item))
             {
@@ -99,21 +107,31 @@ namespace MbsCore.TickSystem
                 if (itemIndex >= 0)
                 {
                     _ticks.RemoveAt(itemIndex);
+                    isDirty = true;
                 }
             }
         }
-
-        private void AddProcessing()
+        
+        private void PreTickProcessing()
         {
-            while (_addQueue.TryDequeue(out TickItem item))
+            bool isDirty = false;
+            AddProcessing(ref isDirty);
+            RemoveProcessing(ref isDirty);
+            if (isDirty)
             {
-                if (_ticks.Contains(item))
-                {
-                    continue;
-                }
-                
-                _ticks.Add(item);
+                _ticks.Sort(s_tickComparer);
+                TickCount = _ticks.Count;
             }
+        }
+
+        private string GetProfileName(TickItem item)
+        {
+            _profileNameBuilder.Clear();
+            _profileNameBuilder.Append(item.Owner.GetType().Name);
+            _profileNameBuilder.Append('.');
+            _profileNameBuilder.Append(item.Action.Method.Name);
+            _profileNameBuilder.Append("()");
+            return _profileNameBuilder.ToString();
         }
         
         private void TickProcessing()
@@ -121,7 +139,13 @@ namespace MbsCore.TickSystem
             PreTickProcessing();
             for (int i = 0; i < TickCount; i++)
             {
-                this.InvokeWithProfile(_ticks[i].Action, DeltaTime);
+                #if UNITY_EDITOR
+                UnityEngine.Profiling.Profiler.BeginSample(GetProfileName(_ticks[i]));
+                #endif
+                _ticks[i].Action.Invoke(DeltaTime);
+                #if UNITY_EDITOR
+                UnityEngine.Profiling.Profiler.EndSample();
+                #endif
             }
         }
     }
