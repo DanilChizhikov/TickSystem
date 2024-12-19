@@ -1,6 +1,6 @@
 using System;
 
-namespace MbsCore.TickSystem
+namespace DTech.TickSystem
 {
     internal sealed class TickItem
     {

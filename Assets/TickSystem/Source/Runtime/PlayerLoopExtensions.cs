@@ -1,7 +1,7 @@
 using System;
 using UnityEngine.LowLevel;
 
-namespace MbsCore.TickSystem
+namespace DTech.TickSystem
 {
     internal static class PlayerLoopExtensions
     {

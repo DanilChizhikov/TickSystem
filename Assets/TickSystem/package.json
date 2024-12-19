@@ -1,7 +1,7 @@
 {
     "name": "com.danilchizhikov.ticksystem",
     "displayName": "Tick System",
-    "version": "0.2.0",
+    "version": "1.0.0",
     "unity": "2022.3",
     "description": "Lightweight update system for Unity.",
     "keywords": [
@@ -11,7 +11,7 @@
         "Tick System"
     ],
     "category": "Tools",
-    "author": "MbsCore",
+    "author": "DTech",
     "repository": {
         "type": "git",
         "url": "ssh://github.com:DanilChizhikov/TickSystem.git",

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.PlayerLoop;
 
-namespace MbsCore.TickSystem
+namespace DTech.TickSystem
 {
     internal sealed class LateUpdateTickController : TickController<PreLateUpdate>
     {
