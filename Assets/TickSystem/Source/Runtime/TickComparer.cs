@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace MbsCore.TickSystem
+namespace DTech.TickSystem
 {
     internal sealed class TickComparer : IComparer<TickItem>
     {

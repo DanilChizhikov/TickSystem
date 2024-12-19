@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MbsCore.TickSystem
+namespace DTech.TickSystem
 {
     public sealed class TickService : ITickService, IDisposable
     {

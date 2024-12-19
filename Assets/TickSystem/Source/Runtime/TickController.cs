@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine.LowLevel;
 
-namespace MbsCore.TickSystem
+namespace DTech.TickSystem
 {
     internal abstract class TickController<TUpdate> : ITickController
     {
-        private static readonly IComparer<TickItem> s_tickComparer = new TickComparer();
+        private static readonly IComparer<TickItem> _sTickComparer = new TickComparer();
         
         private readonly List<TickItem> _ticks;
         private readonly Queue<TickItem> _addQueue;
@@ -119,7 +119,7 @@ namespace MbsCore.TickSystem
             RemoveProcessing(ref isDirty);
             if (isDirty)
             {
-                _ticks.Sort(s_tickComparer);
+                _ticks.Sort(_sTickComparer);
                 TickCount = _ticks.Count;
             }
         }

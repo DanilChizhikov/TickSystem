@@ -1,4 +1,5 @@
 using System;
+using DTech.TickSystem;
 using UnityEngine;
 
 namespace MbsCore.TickSystem
