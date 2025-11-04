@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace DTech.TickSystem
 {
@@ -22,8 +23,9 @@ namespace DTech.TickSystem
             _lateTickDisposables = new HashSet<IDisposable>();
         }
         
-        public IDisposable AddFixTick(IFixTickable value, int order = Int32.MaxValue)
+        public IDisposable AddFixTick(IFixTickable value)
         {
+            int order = GetOrder(value);
             if (!_fixTickController.TryAdd(value, value.FixTick, order))
             {
                 return null;
@@ -34,8 +36,9 @@ namespace DTech.TickSystem
             return handler;
         }
 
-        public IDisposable AddTick(ITickable value, int order = Int32.MaxValue)
+        public IDisposable AddTick(ITickable value)
         {
+            int order = GetOrder(value);
             if (!_tickController.TryAdd(value, value.Tick, order))
             {
                 return null;
@@ -46,8 +49,9 @@ namespace DTech.TickSystem
             return handler;
         }
 
-        public IDisposable AddLateTick(ILateTickable value, int order = Int32.MaxValue)
+        public IDisposable AddLateTick(ILateTickable value)
         {
+            int order = GetOrder(value);
             if (!_lateTickController.TryAdd(value, value.LateTick, order))
             {
                 return null;
@@ -94,6 +98,12 @@ namespace DTech.TickSystem
         private void RemoveLateTickable(TickableHandler handler)
         {
             RemoveTickable(handler, _lateTickController, _lateTickDisposables);
+        }
+
+        private int GetOrder(object source)
+        {
+            var attribute = source.GetType().GetCustomAttribute<TickOrderAttribute>();
+            return attribute?.Value ?? int.MaxValue;
         }
     }
 }
